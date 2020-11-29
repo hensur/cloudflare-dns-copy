@@ -12,9 +12,12 @@ var sourceDomain string
 var targetDomain string
 var apiToken string
 
+var dryRun bool
+
 func main() {
 	flag.StringVar(&sourceDomain, "source", "", "domain to copy records from")
 	flag.StringVar(&targetDomain, "target", "", "domain to copy records to")
+	flag.BoolVar(&dryRun, "dry-run", false, "dry run, no records will be created")
 	flag.Parse()
 
 	apiToken = os.Getenv("CF_API_TOKEN")
@@ -23,6 +26,10 @@ func main() {
 	}
 
 	log.Printf("copying from %s to %s", sourceDomain, targetDomain)
+
+	if dryRun {
+		log.Println("running in dry run mode")
+	}
 
 	// Construct a new API object
 	api, err := cloudflare.NewWithAPIToken(apiToken)
@@ -67,13 +74,15 @@ func main() {
 			r.Data = data
 		}
 
-		log.Println("MODIFIED: --------------------")
+		log.Println("MODIFIED: -----------------")
 		log.Printf("%#v", r)
 		log.Println()
 
-		_, err := api.CreateDNSRecord(tz, r)
-		if err != nil {
-			log.Fatal(err)
+		if !dryRun {
+			_, err := api.CreateDNSRecord(tz, r)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
